@@ -37,15 +37,17 @@ openclaw skills list | grep skill-manager
 
 ## Requirements
 
-- **`GITHUB_TOKEN`** — GitHub personal access token with `repo` scope, able to create repositories in the FutureHax org
+- **`GITHUB_TOKEN`** — GitHub PAT with read-only access (checks repo existence, clones public repos). This is the always-on token that keeps the skill in `ready` state.
+- **`GITHUB_WRITE_TOKEN`** *(optional)* — GitHub PAT with `repo` scope for the FutureHax org. Only needed when `create.sh` runs to create repos and push. Can be short-lived or limited-scope. If not set, `create.sh` falls back to `GITHUB_TOKEN`.
 - **`python3`** — Used for JSON manipulation in tracking scripts (standard on Ubuntu 24.04)
 - **`git`** — For initializing and pushing skill repos
 - **`curl`** — For GitHub REST API calls
 
-Add the token to `~/.openclaw/.env`:
+Add the tokens to `~/.openclaw/.env`:
 
 ```bash
-GITHUB_TOKEN=ghp_your_token_here
+GITHUB_TOKEN=ghp_your_readonly_token
+GITHUB_WRITE_TOKEN=ghp_your_write_token
 ```
 
 ## Skill contents

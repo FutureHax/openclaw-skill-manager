@@ -164,6 +164,8 @@ bash {baseDir}/tools/create.sh <skill-name> "<description>"
 
 Reads from `~/.openclaw/skill-manager/staging/<skill-name>/`, creates the GitHub repo, pushes, and tracks as pending.
 
+**Token**: Uses `GITHUB_WRITE_TOKEN` (preferred) for repo creation and push. Falls back to `GITHUB_TOKEN` if the write token is not set.
+
 ### `pending.sh` — Manage pending skills
 
 ```bash

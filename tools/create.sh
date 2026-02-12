@@ -8,7 +8,9 @@ set -euo pipefail
 # Creates a GitHub repo in the FutureHax org, pushes all files, and tracks
 # the skill as pending installation.
 #
-# Requires: GITHUB_TOKEN environment variable with repo scope for FutureHax org.
+# Requires: GITHUB_WRITE_TOKEN environment variable with repo scope for FutureHax org.
+# Falls back to GITHUB_TOKEN if GITHUB_WRITE_TOKEN is not set, but GITHUB_TOKEN
+# is typically read-only and will fail on create/push operations.
 
 SKILL_NAME="${1:?Usage: create.sh <skill_name> <description>}"
 DESCRIPTION="${2:?Usage: create.sh <skill_name> <description>}"
@@ -18,10 +20,12 @@ REPO_NAME="openclaw-skill-${SKILL_NAME}"
 STAGING_DIR="$HOME/.openclaw/skill-manager/staging/${SKILL_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# --- Validate environment ---
+# --- Resolve write token (prefer GITHUB_WRITE_TOKEN, fall back to GITHUB_TOKEN) ---
 
-if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo '{"error":"GITHUB_TOKEN is not set. A GitHub PAT with repo scope is required."}' >&2
+GH_WRITE_TOKEN="${GITHUB_WRITE_TOKEN:-${GITHUB_TOKEN:-}}"
+
+if [[ -z "$GH_WRITE_TOKEN" ]]; then
+  echo '{"error":"No GitHub write token available. Set GITHUB_WRITE_TOKEN (preferred) or GITHUB_TOKEN with repo scope."}' >&2
   exit 1
 fi
 
@@ -81,7 +85,7 @@ fi
 
 http_code=$(curl -s -o /tmp/gh-create-response.json -w "%{http_code}" \
   -X POST \
-  -H "Authorization: token ${GITHUB_TOKEN}" \
+  -H "Authorization: token ${GH_WRITE_TOKEN}" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/orgs/${GITHUB_ORG}/repos" \
   -d "{
@@ -94,7 +98,7 @@ http_code=$(curl -s -o /tmp/gh-create-response.json -w "%{http_code}" \
 if [[ "$http_code" == "422" ]]; then
   # Repo might already exist — check
   exists_code=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: token ${GITHUB_TOKEN}" \
+    -H "Authorization: token ${GH_WRITE_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${GITHUB_ORG}/${REPO_NAME}")
   if [[ "$exists_code" == "200" ]]; then
@@ -125,7 +129,7 @@ git commit -q -m "Initial commit: ${SKILL_NAME} skill
 
 ${DESCRIPTION}"
 
-git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${REPO_NAME}.git"
+git remote add origin "https://x-access-token:${GH_WRITE_TOKEN}@github.com/${GITHUB_ORG}/${REPO_NAME}.git"
 git push -q -u origin main
 
 # --- Track as pending ---
